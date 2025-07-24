@@ -1,6 +1,7 @@
 import re
 import cffi
 
+from numba.cuda.dispatcher import CUDADispatcher
 import numpy as np
 
 from io import StringIO
@@ -49,6 +50,7 @@ class TestInspect(CUDATestCase):
         self.assertIn("(float32, int32)", typeanno)
         file.close()
 
+        assert isinstance(foo, CUDADispatcher)
         self.assertFileCheckLLVM(foo, sig)
         self.assertFileCheckAsm(foo, sig)
 

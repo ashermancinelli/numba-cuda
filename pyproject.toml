@@ -43,6 +43,7 @@ test = [
     "cffi",
     "pytest",
     "filecheck",
+    "typeguard",
 ]
 test-cu11 = [
     "numba-cuda[test]",
@@ -86,6 +87,14 @@ include = ["numba_cuda*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.cu", "*.h", "*.hpp", "*.ptx", "*.cuh", "VERSION", "Makefile"]
+
+[tool.pyright]
+reportUnnecessaryCast = true
+reportUnnecessaryIsInstance = true
+reportUnnecessaryTypeIgnoreComment = true
+reportDeprecated = false
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
 minversion = "8.0"
