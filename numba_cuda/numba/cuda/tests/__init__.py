@@ -42,6 +42,7 @@ def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()
     this_dir = dirname(__file__)
     suite.addTests(load_testsuite(loader, join(this_dir, "nocuda")))
+    suite.addTests(load_testsuite(loader, join(this_dir, "interpreter")))
     if cuda.is_available():
         suite.addTests(load_testsuite(loader, join(this_dir, "cudasim")))
         gpus = cuda.list_devices()

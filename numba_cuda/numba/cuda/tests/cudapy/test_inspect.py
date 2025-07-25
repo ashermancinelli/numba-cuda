@@ -5,14 +5,15 @@ import numpy as np
 
 from io import StringIO
 from numba import cuda, float32, float64, int32, intp
-from numba.types import float16, CPointer
+from numba.core.types import float16, CPointer
 from numba.cuda import declare_device
-from numba.cuda.testing import unittest, CUDATestCase
 from numba.cuda.testing import (
+    CUDATestCase,
     skip_on_cudasim,
     skip_with_nvdisasm,
     skip_without_nvdisasm,
     skip_if_nvjitlink_missing,
+    unittest,
 )
 
 

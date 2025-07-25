@@ -1,4 +1,5 @@
 """
+
 Test basic language features
 
 """
@@ -58,6 +59,74 @@ class TestLang(CUDATestCase):
 
         a = np.zeros((2, 3))
         cuda_kernel_api_in_multiple_blocks[1, (2, 3)](a)
+
+    def test_arith(self):
+        @cuda.jit((float64,) * 7)
+        def foo(a, b, c, d, e, f, g):
+            """
+            LLVM-LABEL: define void @{{.+}}foo{{.+}}(
+
+            LLVM: fadd
+            LLVM: fadd
+            LLVM: fsub
+            LLVM: fadd
+            LLVM: fmul
+            LLVM: fadd
+            LLVM: fdiv
+            LLVM: fadd
+            LLVM: frem
+            LLVM: fadd
+
+            LLVM: fcmp oeq
+            LLVM: fcmp une
+            LLVM: fcmp olt
+            LLVM: fcmp ogt
+            LLVM: fcmp ole
+            LLVM: fcmp oge
+            LLVM: ret void
+            """
+            a += a + b
+            a += a - c
+            a += a * d
+            a += a / e
+            a += a % f
+            a += a == g
+            a += a != c
+            a += a < g
+            a += a > c
+            a += a <= g
+            a += a >= c
+
+        self.assertFileCheckLLVM(foo)
+
+    def test_slice(self):
+        @cuda.jit
+        def slice_kernel(a):
+            """
+            Ensure the slice is assigned to our memory reference in a loop;
+
+            LLVM: %[[THREE:.*]] = sitofp i64 3 to double
+            LLVM: store double %[[THREE]], double* %".302"
+            LLVM: br label %[[BACKEDGE:.*]]
+            """
+            a[1:2] = 3
+
+        arr = np.zeros(10, dtype=np.float64)
+        slice_kernel[1, 1](arr)
+        self.assertFileCheckLLVM(slice_kernel)
+
+    def test_if_else_redefine(self):
+        @cuda.jit
+        def foo(x, y):
+            """
+            LLVM: bar
+            """
+            z = x * y
+            if x < y:
+                z = x
+            else:
+                z = y
+            return z
 
 
 if __name__ == "__main__":

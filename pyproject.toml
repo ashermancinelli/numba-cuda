@@ -38,34 +38,22 @@ cu12 = [
     "nvidia-cuda-nvrtc-cu12",
     "nvidia-nvjitlink-cu12"
 ]
-test = [
+test-cu11 = [
     "psutil",
     "cffi",
     "pytest",
     "filecheck",
-]
-test-cu11 = [
-    "numba-cuda[test]",
+    "pre-commit",
     "nvidia-curand-cu11",
 ]
 test-cu12 = [
-    "numba-cuda[test]",
+    "psutil",
+    "cffi",
+    "pytest",
+    "filecheck",
+    "pre-commit",
     "nvidia-curand-cu12",
     "pynvjitlink-cu12",
-]
-dev = [
-    "pre-commit",
-    "numba-cuda[test]",
-]
-dev-cu11 = [
-    "numba-cuda[test-cu11]",
-    "numba-cuda[test]",
-    "numba-cuda[dev]",
-]
-dev-cu12 = [
-    "numba-cuda[test-cu12]",
-    "numba-cuda[test]",
-    "numba-cuda[dev]",
 ]
 
 
@@ -91,6 +79,10 @@ include = ["numba_cuda*"]
 minversion = "8.0"
 testpaths = ["numba_cuda/numba/cuda/tests"]
 consider_namespace_packages = true
+
+[tool.pyright]
+include = ["numba_cuda/numba/cuda/tests"]
+reportPossiblyUnboundVariable = false
 
 [tool.ruff]
 line-length = 80
