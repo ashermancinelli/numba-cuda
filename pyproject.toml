@@ -75,6 +75,9 @@ Documentation = "https://github.com/rapidsai/numba-cuda/blob/main/README.md"
 Repository = "https://github.com/rapidsai/numba-cuda"
 License = "https://github.com/rapidsai/numba-cuda/blob/main/LICENSE"
 
+[project.scripts]
+genchecks = "numba.cuda.testing.genchecks:main"
+
 [tool.setuptools.dynamic]
 version = {attr = "numba_cuda.__version__"}
 
