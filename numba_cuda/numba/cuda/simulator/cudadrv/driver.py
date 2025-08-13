@@ -1,15 +1,15 @@
-"""
+'''
 Most of the driver API is unsupported in the simulator, but some stubs are
 provided to allow tests to import correctly.
-"""
+'''
 
 
 def device_memset(dst, val, size, stream=0):
-    dst.view("u1")[:size].fill(bytes([val])[0])
+    dst.view('u1')[:size].fill(bytes([val])[0])
 
 
 def host_to_device(dst, src, size, stream=0):
-    dst.view("u1")[:size] = src.view("u1")[:size]
+    dst.view('u1')[:size] = src.view('u1')[:size]
 
 
 def device_to_host(dst, src, size, stream=0):
@@ -32,10 +32,10 @@ class FakeDriver(object):
 driver = FakeDriver()
 
 
-class _Linker:
+class Linker:
     @classmethod
     def new(cls, max_registers=0, lineinfo=False, cc=None):
-        return _Linker()
+        return Linker()
 
     @property
     def lto(self):
@@ -55,12 +55,8 @@ class CudaAPIError(RuntimeError):
 
 
 def launch_kernel(*args, **kwargs):
-    msg = "Launching kernels directly is not supported in the simulator"
+    msg = 'Launching kernels directly is not supported in the simulator'
     raise RuntimeError(msg)
 
 
 USE_NV_BINDING = False
-
-
-def _have_nvjitlink():
-    return False

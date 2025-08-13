@@ -97,5 +97,4 @@ def make_growing_tuple_case(jit=lambda x: x):
             return None
 
         return (n, make_list(n - 1))
-
     return make_list

@@ -1,6 +1,6 @@
 import math
 from numba.core import types
-from numba.cuda.typing.templates import ConcreteTemplate, signature, Registry
+from numba.core.typing.templates import ConcreteTemplate, signature, Registry
 
 
 registry = Registry()
@@ -136,5 +136,5 @@ class Math_isnan(ConcreteTemplate):
 class Math_modf(ConcreteTemplate):
     cases = [
         signature(types.UniTuple(types.float64, 2), types.float64),
-        signature(types.UniTuple(types.float32, 2), types.float32),
+        signature(types.UniTuple(types.float32, 2), types.float32)
     ]

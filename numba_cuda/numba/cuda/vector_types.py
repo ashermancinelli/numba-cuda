@@ -4,16 +4,14 @@
 from typing import List, Tuple, Dict
 
 from numba import types
-from numba.cuda import cgutils
-from numba.core.extending import models
+from numba.core import cgutils
+from numba.core.extending import make_attribute_wrapper, models, register_model
 from numba.core.imputils import Registry as ImplRegistry
-from numba.cuda.typing.templates import ConcreteTemplate
-from numba.cuda.typing.templates import Registry as TypingRegistry
-from numba.cuda.typing.templates import signature
+from numba.core.typing.templates import ConcreteTemplate
+from numba.core.typing.templates import Registry as TypingRegistry
+from numba.core.typing.templates import signature
 from numba.cuda import stubs
 from numba.cuda.errors import CudaLoweringError
-from numba.cuda.extending import make_attribute_wrapper, register_model
-
 
 typing_registry = TypingRegistry()
 impl_registry = ImplRegistry()
@@ -52,7 +50,7 @@ def make_vector_type(
     name: str,
     base_type: types.Type,
     attr_names: Tuple[str, ...],
-    user_facing_object,
+    user_facing_object
 ) -> types.Type:
     """Create a vector type.
 
@@ -151,7 +149,7 @@ def enable_vector_type_ctor(
         lower(ctor, *arglist)(lowering)
 
 
-vector_types: Dict[str, VectorType] = {}
+vector_types : Dict[str, VectorType] = {}
 
 
 def build_constructor_overloads(base_type, vty_name, num_elements, arglists, l):

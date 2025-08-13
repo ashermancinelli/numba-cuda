@@ -1,11 +1,9 @@
 from functools import singledispatch
 from llvmlite import ir
-from numba.core import types
-from numba.cuda import cgutils
+from numba.core import types, cgutils
 from numba.core.errors import NumbaWarning
 from numba.core.imputils import Registry
 from numba.cuda import nvvmutils
-from numba.cuda.types import Dim3
 from warnings import warn
 
 registry = Registry()
@@ -16,7 +14,6 @@ voidptr = ir.PointerType(ir.IntType(8))
 
 # NOTE: we don't use @lower here since print_item() doesn't return a LLVM value
 
-
 @singledispatch
 def print_item(ty, context, builder, val):
     """
@@ -24,9 +21,8 @@ def print_item(ty, context, builder, val):
     A (format string, [list of arguments]) is returned that will allow
     forming the final printf()-like call.
     """
-    raise NotImplementedError(
-        "printing unimplemented for values of type %s" % (ty,)
-    )
+    raise NotImplementedError("printing unimplemented for values of type %s"
+                              % (ty,))
 
 
 @print_item.register(types.Integer)
@@ -57,26 +53,6 @@ def const_print_impl(ty, context, builder, sigval):
     return rawfmt, [val]
 
 
-@print_item.register(Dim3)
-def dim3_print_impl(ty, context, builder, val):
-    rawfmt = "(%d, %d, %d)"
-    x = builder.extract_value(val, 0)
-    y = builder.extract_value(val, 1)
-    z = builder.extract_value(val, 2)
-    return rawfmt, [x, y, z]
-
-
-@print_item.register(types.Boolean)
-def bool_print_impl(ty, context, builder, val):
-    true_string = context.insert_string_const_addrspace(builder, "True")
-    false_string = context.insert_string_const_addrspace(builder, "False")
-    res_ptr = cgutils.alloca_once_value(builder, false_string)
-    with builder.if_then(val):
-        builder.store(true_string, res_ptr)
-    rawfmt = "%s"
-    return rawfmt, [builder.load(res_ptr)]
-
-
 @lower(print, types.VarArg(types.Any))
 def print_varargs(context, builder, sig, args):
     """This function is a generic 'print' wrapper for arbitrary types.
@@ -95,13 +71,11 @@ def print_varargs(context, builder, sig, args):
 
     rawfmt = " ".join(formats) + "\n"
     if len(args) > 32:
-        msg = (
-            "CUDA print() cannot print more than 32 items. "
-            "The raw format string will be emitted by the kernel instead."
-        )
+        msg = ('CUDA print() cannot print more than 32 items. '
+               'The raw format string will be emitted by the kernel instead.')
         warn(msg, NumbaWarning)
 
-        rawfmt = rawfmt.replace("%", "%%")
+        rawfmt = rawfmt.replace('%', '%%')
     fmt = context.insert_string_const_addrspace(builder, rawfmt)
     array = cgutils.make_anonymous_struct(builder, values)
     arrayptr = cgutils.alloca_once_value(builder, array)

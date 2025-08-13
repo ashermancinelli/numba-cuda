@@ -5,7 +5,5 @@
 - Device array implementation
 
 """
-
 from numba.core import config
-
-assert not config.ENABLE_CUDASIM, "Cannot use real driver API with simulator"
+assert not config.ENABLE_CUDASIM, 'Cannot use real driver API with simulator'

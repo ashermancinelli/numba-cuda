@@ -1,7 +1,7 @@
 import unittest
 
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
-from numba.cuda.tests.support import captured_stdout
+from numba.tests.support import captured_stdout
 
 
 @skip_on_cudasim("cudasim doesn't support cuda import at non-top-level")
@@ -37,7 +37,6 @@ class TestVecAdd(CUDATestCase):
 
             if tid < size:
                 c[tid] = a[tid] + b[tid]
-
         # ex_vecadd.kernel.end
 
         # Seed RNG for test repeatability
@@ -65,7 +64,8 @@ class TestVecAdd(CUDATestCase):
         # ex_vecadd.launch.end
 
         np.testing.assert_equal(
-            c.copy_to_host(), a.copy_to_host() + b.copy_to_host()
+            c.copy_to_host(),
+            a.copy_to_host() + b.copy_to_host()
         )
 
 

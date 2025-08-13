@@ -5,10 +5,9 @@ import weakref
 from numba import cuda
 from numba.core import config
 from numba.cuda.testing import unittest, CUDATestCase, skip_on_cudasim
-from numba.cuda.tests.support import linux_only
+from numba.tests.support import linux_only
 
 if not config.ENABLE_CUDASIM:
-
     class DeviceOnlyEMMPlugin(cuda.HostOnlyCUDAMemoryManager):
         """
         Dummy EMM Plugin implementation for testing. It memorises which plugin
@@ -57,9 +56,8 @@ if not config.ENABLE_CUDASIM:
             # the reference count drops to zero.
             ctx = weakref.proxy(self.context)
             ptr = ctypes.c_void_p(alloc_count)
-            return cuda.cudadrv.driver.AutoFreePointer(
-                ctx, ptr, size, finalizer=finalizer
-            )
+            return cuda.cudadrv.driver.AutoFreePointer(ctx, ptr, size,
+                                                       finalizer=finalizer)
 
         def initialize(self):
             # No special initialization needed.
@@ -84,7 +82,7 @@ if not config.ENABLE_CUDASIM:
             # the tests don't try to do too much with it (e.g. open / close
             # it).
             self.get_ipc_handle_called = True
-            return "Dummy IPC handle for alloc %s" % memory.device_pointer_value
+            return "Dummy IPC handle for alloc %s" % memory.device_pointer.value
 
         @property
         def interface_version(self):
@@ -99,7 +97,7 @@ if not config.ENABLE_CUDASIM:
             return 2
 
 
-@skip_on_cudasim("EMM Plugins not supported on CUDA simulator")
+@skip_on_cudasim('EMM Plugins not supported on CUDA simulator')
 class TestDeviceOnlyEMMPlugin(CUDATestCase):
     """
     Tests that the API of an EMM Plugin that implements device allocations
@@ -177,7 +175,7 @@ class TestDeviceOnlyEMMPlugin(CUDATestCase):
         self.assertIn("Dummy IPC handle for alloc 1", ipch._ipc_handle)
 
 
-@skip_on_cudasim("EMM Plugins not supported on CUDA simulator")
+@skip_on_cudasim('EMM Plugins not supported on CUDA simulator')
 class TestBadEMMPluginVersion(CUDATestCase):
     """
     Ensure that Numba rejects EMM Plugins with incompatible version
@@ -187,8 +185,8 @@ class TestBadEMMPluginVersion(CUDATestCase):
     def test_bad_plugin_version(self):
         with self.assertRaises(RuntimeError) as raises:
             cuda.set_memory_manager(BadVersionEMMPlugin)
-        self.assertIn("version 1 required", str(raises.exception))
+        self.assertIn('version 1 required', str(raises.exception))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,4 @@
-from numba.cuda.tests.support import override_config, captured_stdout
+from numba.tests.support import override_config
 from numba.cuda.testing import skip_on_cudasim
 from numba import cuda
 from numba.core import types
@@ -8,11 +8,20 @@ import re
 import unittest
 
 
-@skip_on_cudasim("Simulator does not produce debug dumps")
+@skip_on_cudasim('Simulator does not produce debug dumps')
 class TestCudaDebugInfo(CUDATestCase):
     """
     These tests only checks the compiled PTX for debuginfo section
     """
+
+    def setUp(self):
+        super().setUp()
+        # If we're using LTO then we can't check the PTX in these tests,
+        # because we produce LTO-IR, which is opaque to the user.
+        # Additionally, LTO optimizes away the exception status due to an
+        # oversight in the way we generate it (it is not added to the used
+        # list).
+        self.skip_if_lto("Exceptions not supported with LTO")
 
     def _getasm(self, fn, sig):
         fn.compile(sig)
@@ -40,7 +49,7 @@ class TestCudaDebugInfo(CUDATestCase):
         self._check(foo, sig=(types.int32[:],), expect=True)
 
     def test_environment_override(self):
-        with override_config("CUDA_DEBUGINFO_DEFAULT", 1):
+        with override_config('CUDA_DEBUGINFO_DEFAULT', 1):
             # Using default value
             @cuda.jit(opt=False)
             def foo(x):
@@ -63,58 +72,6 @@ class TestCudaDebugInfo(CUDATestCase):
         def f(x):
             x[0] = 0
 
-    def test_issue_9888(self):
-        # Compiler created symbol should not be emitted in DILocalVariable
-        # See Numba Issue #9888 https://github.com/numba/numba/pull/9888
-        sig = (types.boolean,)
-
-        @cuda.jit(sig, debug=True, opt=False)
-        def f(cond):
-            if cond:
-                x = 1  # noqa: F841
-            else:
-                x = 0  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-        # A varible name starting with "bool" in the debug metadata
-        pat = r"!DILocalVariable\(.*name:\s+\"bool"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNone(match, msg=llvm_ir)
-
-    def test_bool_type(self):
-        sig = (types.int32, types.int32)
-
-        @cuda.jit("void(int32, int32)", debug=True, opt=False)
-        def f(x, y):
-            z = x == y  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-
-        # extract the metadata node id from `type` field of DILocalVariable
-        pat = r'!DILocalVariable\(.*name:\s+"z".*type:\s+!(\d+)'
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id = match.group(1)
-
-        # verify the DIBasicType has correct encoding attribute DW_ATE_boolean
-        pat = rf"!{mdnode_id}\s+=\s+!DIBasicType\(.*DW_ATE_boolean"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-
-    def test_grid_group_type(self):
-        sig = (types.int32,)
-
-        @cuda.jit(sig, debug=True, opt=False)
-        def f(x):
-            grid = cuda.cg.this_grid()  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-
-        pat = r'!DIBasicType\(.*DW_ATE_unsigned, name: "GridGroup", size: 64'
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-
-    @unittest.skip("Wrappers no longer exist")
     def test_wrapper_has_debuginfo(self):
         sig = (types.int32[::1],)
 
@@ -124,17 +81,14 @@ class TestCudaDebugInfo(CUDATestCase):
 
         llvm_ir = f.inspect_llvm(sig)
 
-        defines = [
-            line
-            for line in llvm_ir.splitlines()
-            if 'define void @"_ZN6cudapy' in line
-        ]
+        defines = [line for line in llvm_ir.splitlines()
+                   if 'define void @"_ZN6cudapy' in line]
 
         # Make sure we only found one definition
         self.assertEqual(len(defines), 1)
 
         wrapper_define = defines[0]
-        self.assertIn("!dbg", wrapper_define)
+        self.assertIn('!dbg', wrapper_define)
 
     def test_debug_function_calls_internal_impl(self):
         # Calling a function in a module generated from an implementation
@@ -192,16 +146,16 @@ class TestCudaDebugInfo(CUDATestCase):
         debug_opts = itertools.product(*[(True, False)] * 3)
 
         for kernel_debug, f1_debug, f2_debug in debug_opts:
-            with self.subTest(
-                kernel_debug=kernel_debug, f1_debug=f1_debug, f2_debug=f2_debug
-            ):
-                self._test_chained_device_function(
-                    kernel_debug, f1_debug, f2_debug
-                )
+            with self.subTest(kernel_debug=kernel_debug,
+                              f1_debug=f1_debug,
+                              f2_debug=f2_debug):
+                self._test_chained_device_function(kernel_debug,
+                                                   f1_debug,
+                                                   f2_debug)
 
-    def _test_chained_device_function_two_calls(
-        self, kernel_debug, f1_debug, f2_debug
-    ):
+    def _test_chained_device_function_two_calls(self, kernel_debug, f1_debug,
+                                                f2_debug):
+
         @cuda.jit(device=True, debug=f2_debug, opt=False)
         def f2(x):
             return x + 1
@@ -226,12 +180,12 @@ class TestCudaDebugInfo(CUDATestCase):
         debug_opts = itertools.product(*[(True, False)] * 3)
 
         for kernel_debug, f1_debug, f2_debug in debug_opts:
-            with self.subTest(
-                kernel_debug=kernel_debug, f1_debug=f1_debug, f2_debug=f2_debug
-            ):
-                self._test_chained_device_function_two_calls(
-                    kernel_debug, f1_debug, f2_debug
-                )
+            with self.subTest(kernel_debug=kernel_debug,
+                              f1_debug=f1_debug,
+                              f2_debug=f2_debug):
+                self._test_chained_device_function_two_calls(kernel_debug,
+                                                             f1_debug,
+                                                             f2_debug)
 
     def test_chained_device_three_functions(self):
         # Like test_chained_device_function, but with enough functions (three)
@@ -262,245 +216,6 @@ class TestCudaDebugInfo(CUDATestCase):
         three_device_fns(kernel_debug=False, leaf_debug=True)
         three_device_fns(kernel_debug=False, leaf_debug=False)
 
-    def _test_kernel_args_types(self):
-        sig = (types.int32, types.int32)
 
-        @cuda.jit("void(int32, int32)", debug=True, opt=False)
-        def f(x, y):
-            z = x + y  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-
-        # extract the metadata node id from `types` field of DISubroutineType
-        pat = r"!DISubroutineType\(types:\s+!(\d+)\)"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id = match.group(1)
-
-        # extract the metadata node ids from the flexible node of types
-        pat = rf"!{mdnode_id}\s+=\s+!{{\s+!(\d+),\s+!(\d+)\s+}}"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id1 = match.group(1)
-        mdnode_id2 = match.group(2)
-
-        # verify each of the two metadata nodes match expected type
-        pat = rf'!{mdnode_id1}\s+=\s+!DIBasicType\(.*DW_ATE_signed,\s+name:\s+"int32"'  # noqa: E501
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        pat = rf'!{mdnode_id2}\s+=\s+!DIBasicType\(.*DW_ATE_signed,\s+name:\s+"int32"'  # noqa: E501
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-
-    def test_kernel_args_types(self):
-        self._test_kernel_args_types()
-
-    def test_kernel_args_types_dump(self):
-        # see issue#135
-        with override_config("DUMP_LLVM", 1):
-            with captured_stdout():
-                self._test_kernel_args_types()
-
-    def test_kernel_args_names(self):
-        sig = (types.int32,)
-
-        @cuda.jit("void(int32)", debug=True, opt=False)
-        def f(x):
-            z = x  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-
-        # Verify argument name is not prefixed with "arg."
-        pat = r"define void @.*\(i32 %\"x\"\)"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        pat = r"define void @.*\(i32 %\"arg\.x\"\)"
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNone(match, msg=llvm_ir)
-
-    def test_llvm_dbg_value(self):
-        sig = (types.int32, types.int32)
-
-        @cuda.jit("void(int32, int32)", debug=True, opt=False)
-        def f(x, y):
-            z1 = x  # noqa: F841
-            z2 = 100  # noqa: F841
-            z3 = y  # noqa: F841
-            z4 = True  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-        # Verify the call to llvm.dbg.declare is replaced by llvm.dbg.value
-        pat1 = r'call void @"llvm.dbg.declare"'
-        match = re.compile(pat1).search(llvm_ir)
-        self.assertIsNone(match, msg=llvm_ir)
-        pat2 = r'call void @"llvm.dbg.value"'
-        match = re.compile(pat2).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-
-    def test_no_user_var_alias(self):
-        sig = (types.int32, types.int32)
-
-        @cuda.jit("void(int32, int32)", debug=True, opt=False)
-        def f(x, y):
-            z = x  # noqa: F841
-            z = y  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-        pat = r'!DILocalVariable.*name:\s+"z\$1".*'
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNone(match, msg=llvm_ir)
-
-    def test_no_literal_type(self):
-        sig = (types.int32,)
-
-        @cuda.jit("void(int32)", debug=True, opt=False)
-        def f(x):
-            z = x  # noqa: F841
-            z = 100  # noqa: F841
-            z = True  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-        pat = r'!DIBasicType.*name:\s+"Literal.*'
-        match = re.compile(pat).search(llvm_ir)
-        self.assertIsNone(match, msg=llvm_ir)
-
-    def test_union_poly_types(self):
-        sig = (types.int32, types.int32)
-
-        @cuda.jit("void(int32, int32)", debug=True, opt=False)
-        def f(x, y):
-            foo = 100  # noqa: F841
-            foo = 2.34  # noqa: F841
-            foo = True  # noqa: F841
-            foo = 200  # noqa: F841
-
-        llvm_ir = f.inspect_llvm(sig)
-        # Extract the type node id
-        pat1 = r'!DILocalVariable\(.*name: "foo".*type: !(\d+)\)'
-        match = re.compile(pat1).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id = match.group(1)
-        # Verify the union type and extract the elements node id
-        pat2 = rf"!{mdnode_id} = distinct !DICompositeType\(elements: !(\d+),.*size: 64, tag: DW_TAG_union_type\)"  # noqa: E501
-        match = re.compile(pat2).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id = match.group(1)
-        # Extract the member node ids
-        pat3 = r"!{ !(\d+), !(\d+), !(\d+) }"
-        match = re.compile(pat3).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        mdnode_id1 = match.group(1)
-        mdnode_id2 = match.group(2)
-        mdnode_id3 = match.group(3)
-        # Verify the member nodes
-        pat4 = rf'!{mdnode_id1} = !DIDerivedType(.*name: "_bool", size: 8, tag: DW_TAG_member)'  # noqa: E501
-        match = re.compile(pat4).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        pat5 = rf'!{mdnode_id2} = !DIDerivedType(.*name: "_float64", size: 64, tag: DW_TAG_member)'  # noqa: E501
-        match = re.compile(pat5).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-        pat6 = rf'!{mdnode_id3} = !DIDerivedType(.*name: "_int64", size: 64, tag: DW_TAG_member)'  # noqa: E501
-        match = re.compile(pat6).search(llvm_ir)
-        self.assertIsNotNone(match, msg=llvm_ir)
-
-    def test_DW_LANG(self):
-        @cuda.jit(debug=True)
-        def foo():
-            """
-            CHECK: distinct !DICompileUnit
-            CHECK-SAME: emissionKind: FullDebug
-            CHECK-SAME: isOptimized: true
-            CHECK-SAME: language: DW_LANG_C_plus_plus
-            CHECK-SAME: producer: "clang (Numba)"
-            """
-            pass
-
-        foo[1, 1]()
-
-        llvm_ir = foo.inspect_llvm()[tuple()]
-        self.assertFileCheckMatches(llvm_ir, foo.__doc__)
-
-    def test_DILocation(self):
-        """Tests that DILocation information is reasonable.
-
-        The kernel `foo` produces LLVM like:
-        define function() {
-        entry:
-          alloca
-          store 0 to alloca
-          <arithmetic for doing the operations on b, c, d>
-          setup for print
-          branch
-        other_labels:
-        ... <elided>
-        }
-
-        The following checks that:
-        * the alloca and store have no !dbg
-        * the arithmetic occurs in the order defined and with !dbg
-        * that the !dbg entries are monotonically increasing in value with
-          source line number
-        """
-        sig = (types.float64,)
-
-        @cuda.jit(sig, debug=True)
-        def foo(a):
-            """
-            CHECK-LABEL: define void @{{.+}}foo
-            CHECK: entry:
-
-            CHECK: %[[VAL_0:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_0]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_1:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_1]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_2:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_2]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_3:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_3]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_4:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_4]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_5:.*]] = alloca double
-            CHECK-NOT: !dbg
-            CHECK: store double 0.0, double* %[[VAL_5]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_6:.*]] = alloca i8*
-            CHECK-NOT: !dbg
-            CHECK: store i8* null, i8** %[[VAL_6]]
-            CHECK-NOT: !dbg
-            CHECK: %[[VAL_7:.*]] = alloca i8*
-            CHECK-NOT: !dbg
-            CHECK: store i8* null, i8** %[[VAL_7]]
-            CHECK-NOT: !dbg
-
-            CHECK: br label %"[[ENTRY:.+]]"
-            CHECK-NOT: !dbg
-            CHECK: [[ENTRY]]:
-
-            CHECK: fadd{{.+}} !dbg ![[DBGADD:[0-9]+]]
-            CHECK: fmul{{.+}} !dbg ![[DBGMUL:[0-9]+]]
-            CHECK: fdiv{{.+}} !dbg ![[DBGDIV:[0-9]+]]
-
-            CHECK: ![[DBGADD]] = !DILocation
-            CHECK: ![[DBGMUL]] = !DILocation
-            CHECK: ![[DBGDIV]] = !DILocation
-            """
-            b = a + 1.23
-            c = b * 2.34
-            a = b / c
-
-        ir = foo.inspect_llvm()[sig]
-        self.assertFileCheckMatches(ir, foo.__doc__)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

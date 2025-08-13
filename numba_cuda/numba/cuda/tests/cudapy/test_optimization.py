@@ -14,14 +14,11 @@ def device_func(x, y, z):
 
 
 # Fragments of code that are removed from kernel_func's PTX when optimization
-# is on. Previously this list was longer when kernel wrappers were used - if
-# the test function were more complex it may be possible to isolate additional
-# fragments of PTX we could check for the absence / presence of, but removal of
-# the use of local memory is a good indicator that optimization was applied.
-removed_by_opt = ("__local_depot0",)
+# is on
+removed_by_opt = ( '__local_depot0', 'call.uni', 'st.param.b64')
 
 
-@skip_on_cudasim("Simulator does not optimize code")
+@skip_on_cudasim('Simulator does not optimize code')
 class TestOptimization(CUDATestCase):
     def test_eager_opt(self):
         # Optimization should occur by default
@@ -74,7 +71,7 @@ class TestOptimization(CUDATestCase):
         sig = (float64, float64, float64)
         device = cuda.jit(sig, device=True)(device_func)
         ptx = device.inspect_asm(sig)
-        self.assertIn("fma.rn.f64", ptx)
+        self.assertIn('fma.rn.f64', ptx)
 
     def test_device_noopt(self):
         # Optimization disabled
@@ -82,8 +79,8 @@ class TestOptimization(CUDATestCase):
         device = cuda.jit(sig, device=True, opt=False)(device_func)
         ptx = device.inspect_asm(sig)
         # Fused-multiply adds should be disabled when not optimizing
-        self.assertNotIn("fma.rn.f64", ptx)
+        self.assertNotIn('fma.rn.f64', ptx)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

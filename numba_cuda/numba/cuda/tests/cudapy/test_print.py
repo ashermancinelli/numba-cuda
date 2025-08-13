@@ -1,5 +1,4 @@
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
-import numpy as np
 import subprocess
 import sys
 import unittest
@@ -32,21 +31,6 @@ cuda.synchronize()
 """
 
 
-printbool_usecase = """\
-from numba import cuda
-
-@cuda.jit
-def printbool(x):
-    print(True)
-    print(False)
-    print(x == 0)
-
-printbool[1, 1](0)
-printbool[1, 1](1)
-cuda.synchronize()
-"""
-
-
 printstring_usecase = """\
 from numba import cuda
 
@@ -58,19 +42,6 @@ def printstring():
 printstring[1, 3]()
 cuda.synchronize()
 """
-
-
-printdim3_usecase = """\
-from numba import cuda
-
-@cuda.jit
-def printdim3():
-    print(cuda.threadIdx)
-
-printdim3[1, (2, 2, 2)]()
-cuda.synchronize()
-"""
-
 
 printempty_usecase = """\
 from numba import cuda
@@ -113,7 +84,7 @@ class TestPrint(CUDATestCase):
     def test_cuhello(self):
         output, _ = self.run_code(cuhello_usecase)
         actual = [line.strip() for line in output.splitlines()]
-        expected = ["-42"] * 6 + ["%d 999" % i for i in range(6)]
+        expected = ['-42'] * 6 + ['%d 999' % i for i in range(6)]
         # The output of GPU threads is intermingled, but each print()
         # call is still atomic
         self.assertEqual(sorted(actual), expected)
@@ -124,11 +95,6 @@ class TestPrint(CUDATestCase):
         expected_cases = ["0 23 34.750000 321", "0 23 34.75 321"]
         self.assertIn(output.strip(), expected_cases)
 
-    def test_bool(self):
-        output, _ = self.run_code(printbool_usecase)
-        expected = "True\r?\nFalse\r?\nTrue\r?\nTrue\r?\nFalse\r?\nFalse"
-        self.assertRegex(output.strip(), expected)
-
     def test_printempty(self):
         output, _ = self.run_code(printempty_usecase)
         self.assertEqual(output.strip(), "")
@@ -136,16 +102,10 @@ class TestPrint(CUDATestCase):
     def test_string(self):
         output, _ = self.run_code(printstring_usecase)
         lines = [line.strip() for line in output.splitlines(True)]
-        expected = ["%d hop! 999" % i for i in range(3)]
+        expected = ['%d hop! 999' % i for i in range(3)]
         self.assertEqual(sorted(lines), expected)
 
-    def test_dim3(self):
-        output, _ = self.run_code(printdim3_usecase)
-        lines = [line.strip() for line in output.splitlines(True)]
-        expected = [str(i) for i in np.ndindex(2, 2, 2)]
-        self.assertEqual(sorted(lines), expected)
-
-    @skip_on_cudasim("cudasim can print unlimited output")
+    @skip_on_cudasim('cudasim can print unlimited output')
     def test_too_many_args(self):
         # Tests that we emit the format string and warn when there are more
         # than 32 arguments, in common with CUDA C/C++ printf - this is due to
@@ -155,16 +115,14 @@ class TestPrint(CUDATestCase):
         output, errors = self.run_code(print_too_many_usecase)
 
         # Check that the format string was printed instead of formatted garbage
-        expected_fmt_string = " ".join(["%lld" for _ in range(33)])
+        expected_fmt_string = ' '.join(['%lld' for _ in range(33)])
         self.assertIn(expected_fmt_string, output)
 
         # Check for the expected warning about formatting more than 32 items
-        warn_msg = (
-            "CUDA print() cannot print more than 32 items. The raw "
-            "format string will be emitted by the kernel instead."
-        )
+        warn_msg = ('CUDA print() cannot print more than 32 items. The raw '
+                    'format string will be emitted by the kernel instead.')
         self.assertIn(warn_msg, errors)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

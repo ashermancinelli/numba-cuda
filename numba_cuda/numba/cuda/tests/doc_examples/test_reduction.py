@@ -1,7 +1,7 @@
 import unittest
 
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
-from numba.cuda.tests.support import captured_stdout
+from numba.tests.support import captured_stdout
 
 
 @skip_on_cudasim("cudasim doesn't support cuda import at non-top-level")
@@ -61,12 +61,11 @@ class TestReduction(CUDATestCase):
                 # After the loop, the zeroth  element contains the sum
                 if tid == 0:
                     data[tid] = shr[tid]
-
         # ex_reduction.kernel.end
 
         # ex_reduction.launch.begin
         array_sum[1, nelem](a)
-        print(a[0])  # 523776
+        print(a[0])                  # 523776
         print(sum(np.arange(1024)))  # 523776
         # ex_reduction.launch.end
 

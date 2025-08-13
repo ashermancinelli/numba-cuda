@@ -12,7 +12,6 @@ class CPUUseCase(UseCase):
 
 # Using the same function as a cached CPU and CUDA-jitted function
 
-
 def target_shared_assign(r, x):
     r[()] = x[()]
 

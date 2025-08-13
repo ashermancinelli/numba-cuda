@@ -15,12 +15,10 @@ def with_asyncio_loop(f):
             return loop.run_until_complete(f(*args, **kwds))
         finally:
             loop.close()
-
     return runner
 
 
-@unittest.skip("Disabled temporarily due to Issue #317")
-@skip_on_cudasim("CUDA Driver API unsupported in the simulator")
+@skip_on_cudasim('CUDA Driver API unsupported in the simulator')
 class TestCudaStream(CUDATestCase):
     def test_add_callback(self):
         def callback(stream, status, event):
@@ -91,7 +89,7 @@ class TestCudaStream(CUDATestCase):
         self.assertTrue(done2.done())
 
 
-@skip_on_cudasim("CUDA Driver API unsupported in the simulator")
+@skip_on_cudasim('CUDA Driver API unsupported in the simulator')
 class TestFailingStream(CUDATestCase):
     # This test can only be run in isolation because it corrupts the CUDA
     # context, which cannot be recovered from within the same process. It is
@@ -120,5 +118,5 @@ class TestFailingStream(CUDATestCase):
         self.assertIsNotNone(done.exception())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

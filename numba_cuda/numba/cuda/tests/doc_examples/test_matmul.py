@@ -6,10 +6,9 @@ Reference: https://stackoverflow.com/a/64198479/13697228 by @RobertCrovella
 Contents in this file are referenced from the sphinx-generated docs.
 "magictoken" is used for markers as beginning and ending of example text.
 """
-
 import unittest
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
-from numba.cuda.tests.support import captured_stdout
+from numba.tests.support import captured_stdout
 
 
 @skip_on_cudasim("cudasim doesn't support cuda import at non-top-level")
@@ -44,11 +43,10 @@ class TestMatMul(CUDATestCase):
             """Perform square matrix multiplication of C = A * B."""
             i, j = cuda.grid(2)
             if i < C.shape[0] and j < C.shape[1]:
-                tmp = 0.0
+                tmp = 0.
                 for k in range(A.shape[1]):
                     tmp += A[i, k] * B[k, j]
                 C[i, j] = tmp
-
         # magictoken.ex_matmul.end
 
         # magictoken.ex_run_matmul.begin
@@ -93,11 +91,11 @@ class TestMatMul(CUDATestCase):
 
             tx = cuda.threadIdx.x
             ty = cuda.threadIdx.y
-            bpg = cuda.gridDim.x  # blocks per grid
+            bpg = cuda.gridDim.x    # blocks per grid
 
             # Each thread computes one element in the result matrix.
             # The dot product is chunked into dot products of TPB-long vectors.
-            tmp = float32(0.0)
+            tmp = float32(0.)
             for i in range(bpg):
                 # Preload data into shared memory
                 sA[ty, tx] = 0
@@ -118,7 +116,6 @@ class TestMatMul(CUDATestCase):
                 cuda.syncthreads()
             if y < C.shape[0] and x < C.shape[1]:
                 C[y, x] = tmp
-
         # magictoken.ex_fast_matmul.end
 
         # magictoken.ex_run_fast_matmul.begin
@@ -172,5 +169,5 @@ class TestMatMul(CUDATestCase):
         self.assertTrue(np.all(z_h == x_h @ y_h), msg=msg)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

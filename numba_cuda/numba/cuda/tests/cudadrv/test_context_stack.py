@@ -25,21 +25,9 @@ class TestContextStack(CUDATestCase):
         gpulist = list(cuda.gpus)
         self.assertGreater(len(gpulist), 0)
 
-    def test_gpus_cudevice_indexing(self):
-        """Test that CUdevice objects can be used to index into cuda.gpus"""
-        # When using the CUDA Python bindings, the device ids are CUdevice
-        # objects, otherwise they are integers. We test that the device id is
-        # usable as an index into cuda.gpus.
-        device_ids = [device.id for device in cuda.list_devices()]
-        for device_id in device_ids:
-            with cuda.gpus[device_id]:
-                # Check that the device is an integer if not using the CUDA
-                # Python bindings, otherwise it's a CUdevice object
-                assert isinstance(device_id, int) != driver.USE_NV_BINDING
-                self.assertEqual(cuda.gpus.current.id, device_id)
-
 
 class TestContextAPI(CUDATestCase):
+
     def tearDown(self):
         super().tearDown()
         cuda.close()
@@ -48,7 +36,7 @@ class TestContextAPI(CUDATestCase):
         try:
             mem = cuda.current_context().get_memory_info()
         except NotImplementedError:
-            self.skipTest("EMM Plugin does not implement get_memory_info()")
+            self.skipTest('EMM Plugin does not implement get_memory_info()')
 
         self.assertIsInstance(mem.free, numbers.Number)
         self.assertEqual(mem.free, mem[0])
@@ -59,7 +47,7 @@ class TestContextAPI(CUDATestCase):
         self.assertLessEqual(mem.free, mem.total)
 
     @unittest.skipIf(len(cuda.gpus) < 2, "need more than 1 gpus")
-    @skip_on_cudasim("CUDA HW required")
+    @skip_on_cudasim('CUDA HW required')
     def test_forbidden_context_switch(self):
         # Cannot switch context inside a `cuda.require_context`
         @cuda.require_context
@@ -84,7 +72,7 @@ class TestContextAPI(CUDATestCase):
         self.assertEqual(int(devid), 1)
 
 
-@skip_on_cudasim("CUDA HW required")
+@skip_on_cudasim('CUDA HW required')
 class Test3rdPartyContext(CUDATestCase):
     def tearDown(self):
         super().tearDown()
@@ -95,8 +83,7 @@ class Test3rdPartyContext(CUDATestCase):
         the_driver = driver.driver
         if driver.USE_NV_BINDING:
             dev = driver.binding.CUdevice(0)
-            binding_hctx = the_driver.cuDevicePrimaryCtxRetain(dev)
-            hctx = driver.drvapi.cu_context(int(binding_hctx))
+            hctx = the_driver.cuDevicePrimaryCtxRetain(dev)
         else:
             dev = 0
             hctx = driver.drvapi.cu_context()
@@ -107,7 +94,10 @@ class Test3rdPartyContext(CUDATestCase):
             # Check that the context from numba matches the created primary
             # context.
             my_ctx = cuda.current_context()
-            self.assertEqual(my_ctx.handle.value, ctx.handle.value)
+            if driver.USE_NV_BINDING:
+                self.assertEqual(int(my_ctx.handle), int(ctx.handle))
+            else:
+                self.assertEqual(my_ctx.handle.value, ctx.handle.value)
 
             extra_work()
         finally:
@@ -120,21 +110,7 @@ class Test3rdPartyContext(CUDATestCase):
         if driver.USE_NV_BINDING:
             flags = 0
             dev = driver.binding.CUdevice(0)
-
-            result, version = driver.binding.cuDriverGetVersion()
-            self.assertEqual(
-                result,
-                driver.binding.CUresult.CUDA_SUCCESS,
-                "Error getting CUDA driver version",
-            )
-
-            # CUDA 13's cuCtxCreate has an optional parameter prepended
-            if version >= 13000:
-                args = (None, flags, dev)
-            else:
-                args = (flags, dev)
-
-            hctx = the_driver.cuCtxCreate(*args)
+            hctx = the_driver.cuCtxCreate(flags, dev)
         else:
             hctx = driver.drvapi.cu_context()
             the_driver.cuCtxCreate(byref(hctx), 0, 0)
@@ -142,9 +118,8 @@ class Test3rdPartyContext(CUDATestCase):
             cuda.current_context()
         except RuntimeError as e:
             # Expecting an error about non-primary CUDA context
-            self.assertIn(
-                "Numba cannot operate on non-primary CUDA context ", str(e)
-            )
+            self.assertIn("Numba cannot operate on non-primary CUDA context ",
+                          str(e))
         else:
             self.fail("No RuntimeError raised")
         finally:
@@ -166,5 +141,5 @@ class Test3rdPartyContext(CUDATestCase):
         self.test_attached_primary(do)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

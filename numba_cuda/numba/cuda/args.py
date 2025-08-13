@@ -2,7 +2,6 @@
 Hints to wrap Kernel arguments to indicate how to manage host-device
 memory transfers before & after the kernel call.
 """
-
 import abc
 
 from numba.core.typing.typeof import typeof, Purpose
@@ -32,8 +31,9 @@ class ArgHint(metaclass=abc.ABCMeta):
 class In(ArgHint):
     def to_device(self, retr, stream=0):
         from .cudadrv.devicearray import auto_device
-
-        devary, _ = auto_device(self.value, stream=stream)
+        devary, _ = auto_device(
+            self.value,
+            stream=stream)
         # A dummy writeback functor to keep devary alive until the kernel
         # is called.
         retr.append(lambda: devary)
@@ -43,8 +43,10 @@ class In(ArgHint):
 class Out(ArgHint):
     def to_device(self, retr, stream=0):
         from .cudadrv.devicearray import auto_device
-
-        devary, conv = auto_device(self.value, copy=False, stream=stream)
+        devary, conv = auto_device(
+            self.value,
+            copy=False,
+            stream=stream)
         if conv:
             retr.append(lambda: devary.copy_to_host(self.value, stream=stream))
         return devary
@@ -53,8 +55,9 @@ class Out(ArgHint):
 class InOut(ArgHint):
     def to_device(self, retr, stream=0):
         from .cudadrv.devicearray import auto_device
-
-        devary, conv = auto_device(self.value, stream=stream)
+        devary, conv = auto_device(
+            self.value,
+            stream=stream)
         if conv:
             retr.append(lambda: devary.copy_to_host(self.value, stream=stream))
         return devary
@@ -65,9 +68,10 @@ def wrap_arg(value, default=InOut):
 
 
 __all__ = [
-    "In",
-    "Out",
-    "InOut",
-    "ArgHint",
-    "wrap_arg",
+    'In',
+    'Out',
+    'InOut',
+
+    'ArgHint',
+    'wrap_arg',
 ]
