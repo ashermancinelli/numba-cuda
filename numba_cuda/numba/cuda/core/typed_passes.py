@@ -7,9 +7,8 @@ from collections import defaultdict, namedtuple
 from copy import copy
 import warnings
 
-from numba.cuda.core import typeinfer
+from numba.cuda.core import typeinfer, errors
 from numba.core import (
-    errors,
     types,
     typing,
     ir,

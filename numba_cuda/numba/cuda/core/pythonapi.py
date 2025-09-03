@@ -5,14 +5,14 @@ from collections import namedtuple
 import contextlib
 import hashlib
 import sys
-
+from numba.cuda.core import errors
 from llvmlite import ir
 from llvmlite.ir import Constant
 
 import ctypes
 from numba import _helperlib
+
 from numba.core import (
-    errors,
     types,
     config,
     lowering,
@@ -20,7 +20,7 @@ from numba.core import (
     imputils,
     serialize,
 )
-from numba.core.utils import PYVERSION
+from numba.cuda.utils import PYVERSION
 
 PY_UNICODE_1BYTE_KIND = _helperlib.py_unicode_1byte_kind
 PY_UNICODE_2BYTE_KIND = _helperlib.py_unicode_2byte_kind
