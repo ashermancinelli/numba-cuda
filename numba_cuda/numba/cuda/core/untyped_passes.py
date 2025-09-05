@@ -12,11 +12,16 @@ from numba.cuda.core.compiler_machinery import (
     SSACompliantMixin,
     register_pass,
 )
-from numba.cuda.core import postproc, bytecode, transforms, inline_closurecall
+from numba.cuda.core import (
+    postproc,
+    bytecode,
+    transforms,
+    inline_closurecall,
+    ir,
+)
 from numba.core import (
     errors,
     types,
-    ir,
     config,
 )
 from numba.cuda.core import consts, rewrites

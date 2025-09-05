@@ -6,7 +6,7 @@ from collections import namedtuple
 from warnings import warn, catch_warnings, simplefilter
 import copy
 
-from numba.core import ir as numba_ir
+from numba.cuda.core import ir as numba_ir
 from numba.core import (
     types,
     config,
